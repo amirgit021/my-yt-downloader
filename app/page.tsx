@@ -3,23 +3,53 @@ import { useState } from 'react';
 
 export default function Ytdownloader() {
   const [url, setUrl] = useState('');
-  const [quality, setQuality] = useState('720'); // پیش‌فرض ۷۲۰
+  const [quality, setQuality] = useState('720');
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     if (!url) return alert('لطفاً لینک یوتیوب را وارد کنید');
     
     setLoading(true);
-    // ساخت آدرس API همراه با کیفیت انتخابی کاربر
-    const apiTarget = `/api/download?url=${encodeURIComponent(url)}&quality=${quality}`;
-    
-    // باز کردن در تب جدید برای جلوگیری از خراب شدن صفحه فعلی
-    window.open(apiTarget, '_blank');
-    setLoading(false);
+    setErrorMsg('');
+
+    try {
+      // مرورگر مستقیماً و بدون نیاز به نتلیفای به سرور کبالت نسخه جدید وصل می‌شود
+      const response = await fetch('https://api.cobalt.tools/api/deliver', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          url: url,
+          videoQuality: quality
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.text || 'سرور با خطا مواجه شد. دوباره تلاش کنید.');
+      }
+
+      if (data && data.url) {
+        // باز کردن لینک مستقیم دانلود ویدیو در تب جدید
+        window.open(data.url, '_blank');
+      } else {
+        throw new Error('لینک دانلود پیدا نشد.');
+      }
+
+    } catch (error: any) {
+      console.error(error);
+      setErrorMsg(error.message || 'خطا در ارتباط با سرور.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '50px', fontFamily: 'tahoma, sans-serif' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '50px', fontFamily: 'tahoma, sans-serif', direction: 'rtl' }}>
       <h1>YouTube Downloader</h1>
       <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', direction: 'ltr' }}>
         <input 
@@ -44,10 +74,13 @@ export default function Ytdownloader() {
           disabled={loading}
           style={{ padding: '10px 20px', cursor: 'pointer', background: '#ff0000', color: 'white', border: 'none', borderRadius: '5px', fontWeight: 'bold' }}
         >
-          {loading ? 'Processing...' : 'Download'}
+          {loading ? 'در حال پردازش...' : 'Download'}
         </button>
       </div>
-      <p style={{ fontSize: '12px', color: '#666' }}>Note: This app redirects you to the raw video stream.</p>
+      
+      {errorMsg && <p style={{ color: 'red', fontWeight: 'bold' }}>{errorMsg}</p>}
+      
+      <p style={{ fontSize: '12px', color: '#666' }}>Note: This app redirects you directly to the raw video stream.</p>
     </div>
   );
 }
