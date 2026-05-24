@@ -6,47 +6,42 @@ export async function GET(request: Request) {
   const quality = searchParams.get('quality') || '720';
 
   if (!url) {
-    return NextResponse.json({ error: 'URL is required' }, { status: 400 });
+    return NextResponse.json({ error: 'آدرس ویدیو ارسال نشده است' }, { status: 400 });
   }
 
   try {
-    // ۱. استفاده از آدرس جدید و رسمی Cobalt v10
+    // ارسال درخواست به بدنه کاملاً بهینه شده نسخه v10
     const response = await fetch('https://api.cobalt.tools/api/deliver', {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json'
       },
-      // ۲. ساختار جدید بدنه درخواست (تنظیمات نسخه جدید)
+      // فقط پارامترهای حیاتی و اجباری نسخه v10 را می‌فرستیم
       body: JSON.stringify({
         url: url,
-        videoQuality: quality, // کیفیت ویدیو (مثل 360, 480, 720, 1080)
-        filenamePattern: 'classic', // نام‌گذاری استاندارد فایل
-        isAudioOnly: false
+        videoQuality: quality
       })
     });
 
     const data = await response.json();
 
+    // اگر سرور کبالت به هر دلیلی ارور داد (مثل همان ارور v7 یا محدودیت‌ها)
     if (!response.ok) {
-      throw new Error(data.text || 'Cobalt API failed to process the video');
+      throw new Error(data.text || 'سرور کبالت درخواست را رد کرد.');
     }
 
-    // ۳. در نسخه جدید، لینک مستقیم دانلود در دیتای بازگشتی و در روت اصلی یا بخش tunnel وجود دارد
-    // ساختار پاسخ بسته به نوع ویدیو ممکن است text، url یا status باشد. معمولاً لینک مستقیم در data.url قرار دارد.
+    // اگر لینک مستقیم با موفقیت ساخته شد
     if (data && data.url) {
       return NextResponse.redirect(data.url, 302);
-    } else if (data && data.text) {
-      // اگر پیامی مبنی بر پردازش یا لینک فرعی داد
-      throw new Error(data.text);
     } else {
-      throw new Error('No download URL returned from API');
+      throw new Error('لینک دانلود در پاسخ سرور یافت نشد.');
     }
 
   } catch (error: any) {
     console.error('Download Error:', error);
     return NextResponse.json({ 
-      error: 'تست جدید آپدیت کد',
+      error: 'خطا در فرآیند دریافت ویدیو',
       details: error.message 
     }, { status: 500 });
   }
