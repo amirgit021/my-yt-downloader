@@ -9,20 +9,19 @@ export async function GET(request: Request) {
   }
 
   try {
-    // استفاده از یک سرویس رایگان برای تبدیل لینک یوتیوب به لینک دانلود
+    // استفاده از api رایگان loader.to برای تبدیل لینک یوتیوب به لینک مستقیم
     const response = await fetch(`https://loader.to/api/button/?url=${encodeURIComponent(url)}&q=hd720`);
-    const data = await response.text();
+    const html = await response.text();
 
-    // ما لینک مستقیم را از پاسخ سرویس استخراج می‌کنیم
-    // این سرویس لینک دانلود را به صورت HTML برمی‌گرداند
-    const match = data.match(/href="([^"]+)"/);
-    const downloadUrl = match ? match[1] : null;
-
-    if (!downloadUrl) {
-      throw new Error('Could not find download link');
+    // استخراج لینک دانلود از بین کدهای HTML
+    const match = html.match(/href="([^"]+)"/);
+    
+    if (match && match[1]) {
+      const downloadUrl = match[1];
+      return NextResponse.redirect(downloadUrl, 302);
+    } else {
+      throw new Error('Download link not found');
     }
-
-    return NextResponse.redirect(downloadUrl, 302);
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch video' }, { status: 500 });
   }
