@@ -46,7 +46,7 @@ export async function GET(request: Request) {
   } catch (error: any) {
     console.error('Download Error:', error);
     return NextResponse.json({ 
-      error: 'خطا در ارتباط با سرور دانلود. لطفاً مجدداً تلاش کنید.',
+      error: 'تست جدید آپدیت کد',
       details: error.message 
     }, { status: 500 });
   }
